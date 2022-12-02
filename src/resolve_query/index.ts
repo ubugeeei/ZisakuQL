@@ -3,7 +3,9 @@ export type ZisakuQLReturn = {
 	errors: { message: string }[];
 };
 
-export const resolveQuery = (reqBodyString: string): ZisakuQLReturn => {
+export const resolveQuery = (
+	reqBodyString: string
+): ZisakuQLReturn => {
 	let data: ZisakuQLReturn["data"] = null;
 	const errors: ZisakuQLReturn["errors"] = [];
 
