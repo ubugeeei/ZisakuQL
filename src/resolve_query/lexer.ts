@@ -4,13 +4,14 @@ export class Lexer {
 	private position: number;
 	private readPosition: number;
 	private ch: string;
-	constructor(private input: string) {
+	public constructor(private input: string) {
 		this.position = -1;
 		this.readPosition = 0;
 		this.ch = "\x1A";
 	}
 
 	public next(): Token {
+		this.skip();
 		this.readChar();
 
 		switch (this.ch) {
@@ -26,19 +27,96 @@ export class Lexer {
 				return { type: TokenType.Colon, literal: this.ch };
 			case "\x1A":
 				return { type: TokenType.EOF, literal: this.ch };
-			default:
-				return { type: TokenType.Number, literal: "0" }; // 仮
+			default: {
+				if (this.isLetter()) {
+					return this.readWord();
+				} else if (this.isDigit()) {
+					return this.readNumber();
+				} else {
+					return { type: TokenType.Illegal, literal: this.ch };
+				}
+			}
 		}
 	}
 
 	private readChar() {
+		this.position = this.readPosition;
+
 		if (this.readPosition >= this.input.length) {
 			this.ch = "\x1A";
 		} else {
-			this.position = this.readPosition;
 			this.readPosition++;
 			this.ch = this.input[this.position];
 		}
+	}
+
+	/*
+	 *
+	 * words
+	 *
+	 */
+	private readWord(): Token {
+		const startPosition = this.position;
+		while (this.isLetter()) {
+			this.readChar();
+		}
+		this.readPosition--;
+
+		const words = this.input.slice(startPosition, this.position);
+		return this.intoToken(words);
+	}
+
+	private intoToken(word: string): Token {
+		switch (word) {
+			case "query":
+				return { type: TokenType.Query, literal: word };
+			default:
+				return { type: TokenType.Identifier, literal: word };
+		}
+	}
+
+	private isLetter(): boolean {
+		return /^[a-zA-Z_]$/.test(this.ch);
+	}
+
+	/*
+	 *
+	 * number
+	 *
+	 */
+	private readNumber(): Token {
+		const startPosition = this.position;
+		while (this.isDigit()) {
+			this.readChar();
+		}
+		this.readPosition--;
+
+		return {
+			type: TokenType.Number,
+			literal: this.input.slice(startPosition, this.position),
+		};
+	}
+
+	private isDigit(): boolean {
+		return /^\d$/.test(this.ch);
+	}
+
+	/**
+	 *
+	 * white space
+	 *
+	 */
+	private skip() {
+		while (
+			["\x20", "\t", "\v", "\n", "\r"].includes(this.peekChar())
+		) {
+			this.readChar();
+		}
+	}
+	private peekChar(): string {
+		return this.readPosition === this.input.length
+			? "\x1A"
+			: this.input[this.readPosition];
 	}
 }
 
@@ -77,6 +155,222 @@ Deno.test("test Lexer (symbol)", async () => {
 	assertEquals(lx.next(), {
 		type: TokenType.EOF,
 		literal: "\x1A",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.EOF,
+		literal: "\x1A",
+	});
+});
+
+Deno.test("test Lexer (tokenize words)", async () => {
+	const { assertEquals } = await import(
+		"https://deno.land/std@0.167.0/testing/asserts.ts"
+	);
+
+	const tests: [input: string, output: Token][] = [
+		[
+			"query",
+			{
+				type: TokenType.Query,
+				literal: "query",
+			},
+		],
+		[
+			"name",
+			{
+				type: TokenType.Identifier,
+				literal: "name",
+			},
+		],
+	];
+
+	for (const [input, output] of tests) {
+		const lx = new Lexer(input);
+		assertEquals(lx.next(), output);
+	}
+});
+
+Deno.test("test Lexer (tokenize number)", async () => {
+	const { assertEquals } = await import(
+		"https://deno.land/std@0.167.0/testing/asserts.ts"
+	);
+
+	const tests: [input: string, output: Token][] = [
+		[
+			"1",
+			{
+				type: TokenType.Number,
+				literal: "1",
+			},
+		],
+		[
+			"123",
+			{
+				type: TokenType.Number,
+				literal: "123",
+			},
+		],
+	];
+
+	for (const [input, output] of tests) {
+		const lx = new Lexer(input);
+		assertEquals(lx.next(), output);
+	}
+});
+
+Deno.test("test Lexer (slip white space)", async () => {
+	const { assertEquals } = await import(
+		"https://deno.land/std@0.167.0/testing/asserts.ts"
+	);
+
+	const input = `
+
+  query getTodo
+
+        name
+      description
+
+  `;
+
+	const lx = new Lexer(input);
+
+	assertEquals(lx.next(), {
+		type: TokenType.Query,
+		literal: "query",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "getTodo",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "name",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "description",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.EOF,
+		literal: "\x1A",
+	});
+});
+
+Deno.test("test Lexer (Illegal)", async () => {
+	const { assertEquals } = await import(
+		"https://deno.land/std@0.167.0/testing/asserts.ts"
+	);
+
+	const lx = new Lexer("query ? ##");
+
+	assertEquals(lx.next(), {
+		type: TokenType.Query,
+		literal: "query",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Illegal,
+		literal: "?",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Illegal,
+		literal: "#",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Illegal,
+		literal: "#",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.EOF,
+		literal: "\x1A",
+	});
+});
+
+Deno.test("test Lexer (tokenize query)", async () => {
+	const { assertEquals } = await import(
+		"https://deno.land/std@0.167.0/testing/asserts.ts"
+	);
+
+	const query = `
+    query getTodo(id: 1) {
+    	name
+    	description
+    	dueDate
+    	owner {
+    		id
+    		username
+    	}
+    }
+  `;
+
+	const lx = new Lexer(query);
+
+	assertEquals(lx.next(), {
+		type: TokenType.Query,
+		literal: "query",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "getTodo",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.LeftParen,
+		literal: "(",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "id",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Colon,
+		literal: ":",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Number,
+		literal: "1",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.RightParen,
+		literal: ")",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.LeftBrace,
+		literal: "{",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "name",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "description",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "dueDate",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "owner",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.LeftBrace,
+		literal: "{",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "id",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "username",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.RightBrace,
+		literal: "}",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.RightBrace,
+		literal: "}",
 	});
 	assertEquals(lx.next(), {
 		type: TokenType.EOF,
