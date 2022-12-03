@@ -3,7 +3,7 @@ export type ZisakuQLReturn = {
 	errors: { message: string }[];
 };
 
-export type ZisakuQLResolver = {
+export type ZisakuQLResolvers = {
 	Query?: {
 		// deno-lint-ignore no-explicit-any
 		[key: string]: (...args: any[]) => any;
