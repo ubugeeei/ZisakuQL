@@ -39,21 +39,30 @@ export class Evaluator {
 	private resolve(
 		// deno-lint-ignore no-explicit-any
 		resolver: (...args: any[]) => any
-	): Record<string, unknown> | null {
+	): Record<string, unknown> | Record<string, unknown>[] | null {
 		const data = resolver(
 			...(this.ast.variables ?? []).map((it) => it.value)
 		);
-		return this.selectFields(data, this.ast.selectionSet);
+		return this.selectFields(data);
 	}
 
 	private selectFields(
+		data: Record<string, unknown> | Record<string, unknown>[]
+	): Record<string, unknown> | Record<string, unknown>[] {
+		if (this.ast.selectionSet.length === 0) return {};
+
+		return Array.isArray(data)
+			? data.map((it) =>
+					this._selectFields(it, this.ast.selectionSet)
+			  )
+			: this._selectFields(data, this.ast.selectionSet);
+	}
+
+	private _selectFields(
 		data: Record<string, unknown>,
 		selectionSet: OperationDefinition["selectionSet"]
-	): Record<string, unknown> {
-		if (selectionSet.length === 0) return {};
-
+	) {
 		const result: Record<string, unknown> = {};
-
 		selectionSet.forEach((it) => {
 			const value = data[it.name];
 			if (
@@ -61,7 +70,7 @@ export class Evaluator {
 				typeof value === "object" &&
 				value !== null
 			) {
-				result[it.name] = this.selectFields(
+				result[it.name] = this._selectFields(
 					value as Record<string, unknown>,
 					it.selectionSet
 				);
@@ -69,7 +78,6 @@ export class Evaluator {
 				result[it.name] = value;
 			}
 		});
-
 		return result;
 	}
 }
