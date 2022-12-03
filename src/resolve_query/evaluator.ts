@@ -2,25 +2,20 @@ import { OperationDefinition, OperationType } from "./ast.ts";
 import { ZisakuQLResolvers, ZisakuQLReturn } from "./index.ts";
 
 export class Evaluator {
-	// deno-lint-ignore no-explicit-any
-	private resolver: ((...args: any[]) => any) | null;
-
 	public constructor(
 		private ast: OperationDefinition,
 		private resolvers: ZisakuQLResolvers
-	) {
-		this.resolver = null;
-	}
+	) {}
 
 	public eval(): ZisakuQLReturn {
 		let data: ZisakuQLReturn["data"] = null;
 		const errors: ZisakuQLReturn["errors"] = [];
 
-		this.findResolver();
+		const resolver = this.findResolver();
 
-		if (this.resolver) {
+		if (resolver) {
 			data = {
-				[this.ast.name]: this.execResolver(),
+				[this.ast.name]: this.resolve(resolver),
 			};
 		} else {
 			errors.push({ message: `query not found '${this.ast.name}'` });
@@ -29,21 +24,23 @@ export class Evaluator {
 		return { data, errors };
 	}
 
-	private findResolver() {
+	// deno-lint-ignore no-explicit-any
+	private findResolver(): ((...args: any[]) => any) | null {
 		switch (this.ast.operationType) {
 			case OperationType.Query: {
-				if (this.resolvers.Query) {
-					this.resolver = this.resolvers.Query[this.ast.name] ?? null;
-				}
-				break;
+				if (!this.resolvers.Query) return null;
+				return this.resolvers.Query[this.ast.name] ?? null;
 			}
 			default:
-				break;
+				return null;
 		}
 	}
 
-	private execResolver(): Record<string, unknown> | null {
-		const data = this.resolver!(
+	private resolve(
+		// deno-lint-ignore no-explicit-any
+		resolver: (...args: any[]) => any
+	): Record<string, unknown> | null {
+		const data = resolver(
 			...(this.ast.variables ?? []).map((it) => it.value)
 		);
 		return this.selectFields(data, this.ast.selectionSet);
