@@ -33,7 +33,7 @@ export class Lexer {
 				} else if (this.isDigit()) {
 					return this.readNumber();
 				} else {
-					return { type: TokenType.Number, literal: "0" }; // 仮
+					return { type: TokenType.Illegal, literal: this.ch };
 				}
 			}
 		}
@@ -252,6 +252,35 @@ Deno.test("test Lexer (slip white space)", async () => {
 	assertEquals(lx.next(), {
 		type: TokenType.Identifier,
 		literal: "description",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.EOF,
+		literal: "\x1A",
+	});
+});
+
+Deno.test("test Lexer (Illegal)", async () => {
+	const { assertEquals } = await import(
+		"https://deno.land/std@0.167.0/testing/asserts.ts"
+	);
+
+	const lx = new Lexer("query ? ##");
+
+	assertEquals(lx.next(), {
+		type: TokenType.Query,
+		literal: "query",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Illegal,
+		literal: "?",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Illegal,
+		literal: "#",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Illegal,
+		literal: "#",
 	});
 	assertEquals(lx.next(), {
 		type: TokenType.EOF,

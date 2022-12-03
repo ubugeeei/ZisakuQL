@@ -13,4 +13,5 @@ export enum TokenType {
 	RightBrace,
 	Colon,
 	EOF,
+	Illegal,
 }
