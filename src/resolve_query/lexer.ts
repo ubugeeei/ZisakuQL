@@ -11,6 +11,7 @@ export class Lexer {
 	}
 
 	public next(): Token {
+		this.skip();
 		this.readChar();
 
 		switch (this.ch) {
@@ -59,7 +60,12 @@ export class Lexer {
 			this.readChar();
 		}
 		this.readPosition--;
-		const words = this.input.slice(startPosition, this.position + 1);
+
+		const isLast = this.position === this.input.length - 1;
+		const words = this.input.slice(
+			startPosition,
+			isLast ? undefined : this.position
+		);
 		return this.intoToken(words);
 	}
 
@@ -96,6 +102,24 @@ export class Lexer {
 
 	private isDigit(): boolean {
 		return /^\d$/.test(this.ch);
+	}
+
+	/**
+	 *
+	 * white space
+	 *
+	 */
+	private skip() {
+		while (
+			["\x20", "\t", "\v", "\n", "\r"].includes(this.peekChar())
+		) {
+			this.readChar();
+		}
+	}
+	private peekChar(): string {
+		return this.readPosition === this.input.length
+			? "\x1A"
+			: this.input[this.readPosition];
 	}
 }
 
@@ -195,6 +219,44 @@ Deno.test("test Lexer (tokenize number)", async () => {
 		const lx = new Lexer(input);
 		assertEquals(lx.next(), output);
 	}
+});
+
+Deno.test("test Lexer (slip white space)", async () => {
+	const { assertEquals } = await import(
+		"https://deno.land/std@0.167.0/testing/asserts.ts"
+	);
+
+	const input = `
+
+  query getTodo
+
+        name
+      description
+
+  `;
+
+	const lx = new Lexer(input);
+
+	assertEquals(lx.next(), {
+		type: TokenType.Query,
+		literal: "query",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "getTodo",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "name",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "description",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.EOF,
+		literal: "\x1A",
+	});
 });
 
 // Deno.test("test Lexer (tokenize query)", async () => {
