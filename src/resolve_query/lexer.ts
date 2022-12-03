@@ -4,7 +4,7 @@ export class Lexer {
 	private position: number;
 	private readPosition: number;
 	private ch: string;
-	constructor(private input: string) {
+	public constructor(private input: string) {
 		this.position = -1;
 		this.readPosition = 0;
 		this.ch = "\x1A";
