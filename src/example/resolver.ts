@@ -1,7 +1,7 @@
-import { ZisakuQLResolver } from "../resolve_query/index.ts";
+import { ZisakuQLResolvers } from "../resolve_query/index.ts";
 import { InMemoryDB } from "./db.ts";
 
-export const resolvers: ZisakuQLResolver = {
+export const resolvers: ZisakuQLResolvers = {
 	Query: {
 		listTodos: () => {
 			return InMemoryDB.todos;
