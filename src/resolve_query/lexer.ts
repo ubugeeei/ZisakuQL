@@ -29,6 +29,8 @@ export class Lexer {
 			default: {
 				if (this.isLetter()) {
 					return this.readWord();
+				} else if (this.isDigit()) {
+					return this.readNumber();
 				} else {
 					return { type: TokenType.Number, literal: "0" }; // 仮
 				}
@@ -46,6 +48,11 @@ export class Lexer {
 		}
 	}
 
+	/*
+	 *
+	 * words
+	 *
+	 */
 	private readWord(): Token {
 		const startPosition = this.position;
 		while (this.isLetter()) {
@@ -67,6 +74,28 @@ export class Lexer {
 
 	private isLetter(): boolean {
 		return /^[a-zA-Z_]$/.test(this.ch);
+	}
+
+	/*
+	 *
+	 * number
+	 *
+	 */
+	private readNumber(): Token {
+		const startPosition = this.position;
+		while (this.isDigit()) {
+			this.readChar();
+		}
+		this.readPosition--;
+
+		return {
+			type: TokenType.Number,
+			literal: this.input.slice(startPosition, this.position + 1),
+		};
+	}
+
+	private isDigit(): boolean {
+		return /^\d$/.test(this.ch);
 	}
 }
 
@@ -130,6 +159,34 @@ Deno.test("test Lexer (tokenize words)", async () => {
 			{
 				type: TokenType.Identifier,
 				literal: "name",
+			},
+		],
+	];
+
+	for (const [input, output] of tests) {
+		const lx = new Lexer(input);
+		assertEquals(lx.next(), output);
+	}
+});
+
+Deno.test("test Lexer (tokenize number)", async () => {
+	const { assertEquals } = await import(
+		"https://deno.land/std@0.167.0/testing/asserts.ts"
+	);
+
+	const tests: [input: string, output: Token][] = [
+		[
+			"1",
+			{
+				type: TokenType.Number,
+				literal: "1",
+			},
+		],
+		[
+			"123",
+			{
+				type: TokenType.Number,
+				literal: "123",
 			},
 		],
 	];
