@@ -40,10 +40,11 @@ export class Lexer {
 	}
 
 	private readChar() {
+		this.position = this.readPosition;
+
 		if (this.readPosition >= this.input.length) {
 			this.ch = "\x1A";
 		} else {
-			this.position = this.readPosition;
 			this.readPosition++;
 			this.ch = this.input[this.position];
 		}
@@ -61,11 +62,7 @@ export class Lexer {
 		}
 		this.readPosition--;
 
-		const isLast = this.position === this.input.length - 1;
-		const words = this.input.slice(
-			startPosition,
-			isLast ? undefined : this.position
-		);
+		const words = this.input.slice(startPosition, this.position);
 		return this.intoToken(words);
 	}
 
@@ -96,7 +93,7 @@ export class Lexer {
 
 		return {
 			type: TokenType.Number,
-			literal: this.input.slice(startPosition, this.position + 1),
+			literal: this.input.slice(startPosition, this.position),
 		};
 	}
 
@@ -288,95 +285,95 @@ Deno.test("test Lexer (Illegal)", async () => {
 	});
 });
 
-// Deno.test("test Lexer (tokenize query)", async () => {
-// 	const { assertEquals } = await import(
-// 		"https://deno.land/std@0.167.0/testing/asserts.ts"
-// 	);
+Deno.test("test Lexer (tokenize query)", async () => {
+	const { assertEquals } = await import(
+		"https://deno.land/std@0.167.0/testing/asserts.ts"
+	);
 
-// 	const query = `
-//     query getTodo(id: 1) {
-//     	name
-//     	description
-//     	dueDate
-//     	owner {
-//     		id
-//     		username
-//     	}
-//     }
-//   `;
+	const query = `
+    query getTodo(id: 1) {
+    	name
+    	description
+    	dueDate
+    	owner {
+    		id
+    		username
+    	}
+    }
+  `;
 
-// 	const lx = new Lexer(query);
+	const lx = new Lexer(query);
 
-// 	assertEquals(lx.next(), {
-// 		type: TokenType.Query,
-// 		literal: "query",
-// 	});
-// 	assertEquals(lx.next(), {
-// 		type: TokenType.Identifier,
-// 		literal: "getTodo",
-// 	});
-// 	assertEquals(lx.next(), {
-// 		type: TokenType.LeftParen,
-// 		literal: "(",
-// 	});
-// 	assertEquals(lx.next(), {
-// 		type: TokenType.Identifier,
-// 		literal: "id",
-// 	});
-// 	assertEquals(lx.next(), {
-// 		type: TokenType.Colon,
-// 		literal: ":",
-// 	});
-// 	assertEquals(lx.next(), {
-// 		type: TokenType.Number,
-// 		literal: "1",
-// 	});
-// 	assertEquals(lx.next(), {
-// 		type: TokenType.RightParen,
-// 		literal: ")",
-// 	});
-// 	assertEquals(lx.next(), {
-// 		type: TokenType.LeftBrace,
-// 		literal: "{",
-// 	});
-// 	assertEquals(lx.next(), {
-// 		type: TokenType.Identifier,
-// 		literal: "name",
-// 	});
-// 	assertEquals(lx.next(), {
-// 		type: TokenType.Identifier,
-// 		literal: "description",
-// 	});
-// 	assertEquals(lx.next(), {
-// 		type: TokenType.Identifier,
-// 		literal: "dueDate",
-// 	});
-// 	assertEquals(lx.next(), {
-// 		type: TokenType.Identifier,
-// 		literal: "owner",
-// 	});
-// 	assertEquals(lx.next(), {
-// 		type: TokenType.LeftBrace,
-// 		literal: "{",
-// 	});
-// 	assertEquals(lx.next(), {
-// 		type: TokenType.Identifier,
-// 		literal: "id",
-// 	});
-// 	assertEquals(lx.next(), {
-// 		type: TokenType.Identifier,
-// 		literal: "username",
-// 	});
-// 	assertEquals(lx.next(), {
-// 		type: TokenType.RightBrace,
-// 		literal: "}",
-// 	});
-// 	assertEquals(lx.next(), {
-// 		type: TokenType.RightBrace,
-// 		literal: "}",
-// 	});
-// 	assertEquals(lx.next(), {
-// 		type: TokenType.EOF,
-// 		literal: "\x1A",
-// 	});
-// });
+	assertEquals(lx.next(), {
+		type: TokenType.Query,
+		literal: "query",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "getTodo",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.LeftParen,
+		literal: "(",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "id",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Colon,
+		literal: ":",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Number,
+		literal: "1",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.RightParen,
+		literal: ")",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.LeftBrace,
+		literal: "{",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "name",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "description",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "dueDate",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "owner",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.LeftBrace,
+		literal: "{",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "id",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.Identifier,
+		literal: "username",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.RightBrace,
+		literal: "}",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.RightBrace,
+		literal: "}",
+	});
+	assertEquals(lx.next(), {
+		type: TokenType.EOF,
+		literal: "\x1A",
+	});
+});
