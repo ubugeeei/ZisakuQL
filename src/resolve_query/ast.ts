@@ -1,16 +1,15 @@
-export type OperationDefinition =
-	| {
-			operationType: OperationType;
-			name: string;
-			variables?: Variable[];
-			selectionSet: SelectionSet;
-	  }
-	| SelectionSet;
+export type OperationDefinition = {
+	operationType: OperationType;
+	name: string;
+	variables?: Variable[];
+	selectionSet: SelectionSet;
+};
+// | SelectionSet;
 
 export enum OperationType {
 	Query,
-	Mutation,
-	Subscription,
+	// Mutation,
+	// Subscription,
 }
 
 export type Variable = {
