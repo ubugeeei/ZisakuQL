@@ -26,8 +26,13 @@ export class Lexer {
 				return { type: TokenType.Colon, literal: this.ch };
 			case "\x1A":
 				return { type: TokenType.EOF, literal: this.ch };
-			default:
-				return { type: TokenType.Number, literal: "0" }; // 仮
+			default: {
+				if (this.isLetter()) {
+					return this.readWord();
+				} else {
+					return { type: TokenType.Number, literal: "0" }; // 仮
+				}
+			}
 		}
 	}
 
@@ -39,6 +44,29 @@ export class Lexer {
 			this.readPosition++;
 			this.ch = this.input[this.position];
 		}
+	}
+
+	private readWord(): Token {
+		const startPosition = this.position;
+		while (this.isLetter()) {
+			this.readChar();
+		}
+		this.readPosition--;
+		const words = this.input.slice(startPosition, this.position + 1);
+		return this.intoToken(words);
+	}
+
+	private intoToken(word: string): Token {
+		switch (word) {
+			case "query":
+				return { type: TokenType.Query, literal: word };
+			default:
+				return { type: TokenType.Identifier, literal: word };
+		}
+	}
+
+	private isLetter(): boolean {
+		return /^[a-zA-Z_]$/.test(this.ch);
 	}
 }
 
@@ -89,31 +117,27 @@ Deno.test("test Lexer (tokenize words)", async () => {
 		"https://deno.land/std@0.167.0/testing/asserts.ts"
 	);
 
-	const query = `
-    query getTodo
+	const tests: [input: string, output: Token][] = [
+		[
+			"query",
+			{
+				type: TokenType.Query,
+				literal: "query",
+			},
+		],
+		[
+			"name",
+			{
+				type: TokenType.Identifier,
+				literal: "name",
+			},
+		],
+	];
 
-
-    	name   id
-  `;
-
-	const lx = new Lexer(query);
-
-	assertEquals(lx.next(), {
-		type: TokenType.Query,
-		literal: "query",
-	});
-	assertEquals(lx.next(), {
-		type: TokenType.Identifier,
-		literal: "getTodo",
-	});
-	assertEquals(lx.next(), {
-		type: TokenType.Identifier,
-		literal: "name",
-	});
-	assertEquals(lx.next(), {
-		type: TokenType.Identifier,
-		literal: "id",
-	});
+	for (const [input, output] of tests) {
+		const lx = new Lexer(input);
+		assertEquals(lx.next(), output);
+	}
 });
 
 // Deno.test("test Lexer (tokenize query)", async () => {
