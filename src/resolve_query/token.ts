@@ -6,10 +6,11 @@ export type Token = {
 export enum TokenType {
 	Query,
 	Identifier,
-  Number,
+	Number,
 	LeftParen,
 	RightParen,
 	LeftBrace,
 	RightBrace,
 	Colon,
+	EOF,
 }
