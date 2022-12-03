@@ -1,3 +1,8 @@
+import { resolvers } from "../example/resolver.ts";
+import { Evaluator } from "./evaluator.ts";
+import { Lexer } from "./lexer.ts";
+import { Parser } from "./parser.ts";
+
 export type ZisakuQLReturn = {
 	data: unknown;
 	errors: { message: string }[];
@@ -13,16 +18,14 @@ export type ZisakuQLResolvers = {
 export const resolveQuery = (
 	reqBodyString: string
 ): ZisakuQLReturn => {
-	let data: ZisakuQLReturn["data"] = null;
-	const errors: ZisakuQLReturn["errors"] = [];
+	const lexer = new Lexer(reqBodyString);
+	const parser = new Parser(lexer);
 
-	if (reqBodyString === "japanese") {
-		data = "こんにちは、世界！";
-	} else if (reqBodyString === "english") {
-		data = "Hello, world!";
+	const ast = parser.parse();
+	if (ast instanceof Error) {
+		return { data: null, errors: [{ message: "ParseError" }] };
 	} else {
-		errors.push({ message: "Invalid request body" });
+		const evaluator = new Evaluator(ast, resolvers);
+		return evaluator.eval();
 	}
-
-	return { data, errors };
 };
