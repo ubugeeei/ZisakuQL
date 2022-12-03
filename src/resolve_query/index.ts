@@ -3,6 +3,13 @@ export type ZisakuQLReturn = {
 	errors: { message: string }[];
 };
 
+export type ZisakuQLResolver = {
+	Query?: {
+		// deno-lint-ignore no-explicit-any
+		[key: string]: (...args: any[]) => any;
+	};
+};
+
 export const resolveQuery = (
 	reqBodyString: string
 ): ZisakuQLReturn => {
