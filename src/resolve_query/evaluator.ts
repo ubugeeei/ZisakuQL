@@ -42,11 +42,37 @@ export class Evaluator {
 		}
 	}
 
-	private execResolver() {
+	private execResolver(): Record<string, unknown> | null {
 		const data = this.resolver!(
 			...(this.ast.variables ?? []).map((it) => it.value)
 		);
-		// TODO: select fields
-		return data;
+		return this.selectFields(data, this.ast.selectionSet);
+	}
+
+	private selectFields(
+		data: Record<string, unknown>,
+		selectionSet: OperationDefinition["selectionSet"]
+	): Record<string, unknown> {
+		if (selectionSet.length === 0) return {};
+
+		const result: Record<string, unknown> = {};
+
+		selectionSet.forEach((it) => {
+			const value = data[it.name];
+			if (
+				it.selectionSet?.length &&
+				typeof value === "object" &&
+				value !== null
+			) {
+				result[it.name] = this.selectFields(
+					value as Record<string, unknown>,
+					it.selectionSet
+				);
+			} else {
+				result[it.name] = value;
+			}
+		});
+
+		return result;
 	}
 }
